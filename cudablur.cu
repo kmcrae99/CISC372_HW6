@@ -17,7 +17,7 @@
 //            rad: the width of the blur
 //            bpp: The bits per pixel in the src image
 //Returns: None
-__global__ void computeRow(float* src,float* dest,int row,int pWidth,int radius,int bpp){
+__global__ void computeRow(float* src,float* dest,int pWidth,int radius,int bpp,int height){
     int row = (blockIdx.x * blockDim.x) + threadIdx.x;
     if (row>=height){
 	return;
@@ -52,8 +52,8 @@ __global__ void computeRow(float* src,float* dest,int row,int pWidth,int radius,
 //            radius: the width of the blur
 //            bpp: The bits per pixel in the src image
 //Returns: None
-__global__ void computeColumn(uint8_t* src,float* dest,int col,int pWidth,int height,int radius,int bpp){
-    int col = blockIdx.x * blockDimx + threadIdx.x;
+__global__ void computeColumn(uint8_t* src,float* dest,int pWidth,int height,int radius,int bpp){
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
     if (col >= pWidth){
 	return;
     }
@@ -107,10 +107,10 @@ int main(int argc,char** argv){
     cudaMalloc(&dest_img, sizeof(uint8_t)*pWidth*height);
     cudaMallocManaged(&dest, sizeof(float)*pWidth*height);
     cudaMallocManaged(&mid, sizeof(float)*pWidth*height);
-    int numBlockw=(pwidth+(BLOCKSIZE-1))/BLOCKSIZE;
+    int numBlockw=(pWidth+(BLOCKSIZE-1))/BLOCKSIZE;
     int numBlockh=(height+(BLOCKSIZE-1))/BLOCKSIZE;   
 
-    cudaMemcpy(dest_Img, img, sizeof(uint8_t)*pWidth*height, cudaMemcpyHostToDevice);
+    cudaMemcpy(dest_img, img, sizeof(uint8_t)*pWidth*height, cudaMemcpyHostToDevice);
     t1=clock();
      
     computeColumn<<<numBlockw, BLOCKSIZE>>>(img, mid, pWidth, height, radius, bpp);
@@ -118,7 +118,7 @@ int main(int argc,char** argv){
     computeRow<<<numBlockh, BLOCKSIZE>>>(mid, dest, pWidth, height, radius, bpp);
     cudaDeviceSynchronize();
 
-    t2=clock()
+    t2=clock();
     for (i=0;i<pWidth*height;i++){
          img[i]=(uint8_t)dest[i];
     }  
